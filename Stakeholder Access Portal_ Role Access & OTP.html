@@ -105,3 +105,46 @@ if(step==3&&$('se')){const l=Math.max(0,Math.floor((sess.until-Date.now())/1000)
 try{const s=JSON.parse(sessionStorage.getItem('sap')||'null');if(s&&s.sess&&s.sess.until>Date.now()){sess=s.sess;log=s.log||[];role=ROLES.find(r=>r.id==sess.role)||role;phone=sess.phone;step=3}}catch(e){}
 render();if(step==3)tick();
 </script></body></html>
+const pd=ft=>ft._d||(ft._d=rg(ft).map(p=>p.map(r=>'M'+r.map(([x,y])=>((x-x0)*k*sc+5).toFixed(1)+','+((y1-y)*sc+5).toFixed(1)).join('L')+'Z').join('')).join(''));
+const vals=B.map(b=>mode=='demand'?b.dem:mode=='dep'?b.dep:mode=='silence'?b.silence:b.gs),mx=Math.max(...vals),h={demand:28,dep:350,silence:265,gap:170}[mode];
+$('map').innerHTML=GEO.un.map(ft=>`<path d="${pd(ft)}" fill="var(--line)" stroke="var(--bg)" stroke-width=".4"/>`).join('')+B.map((b,i)=>`<path d="${pd(b.ft)}" fill="${ramp(vals[i]/mx,h)}" stroke="${sel==i?'var(--ink)':'var(--bg)'}" stroke-width="${sel==i?1.8:.5}" onclick="pick(${i})" style="cursor:pointer"><title>${b.name}</title></path>`).join('');
+$('legend').textContent='Real boundaries and your uploaded deprivation data; request counts are still simulated. Mode: '+mode+'.'}
+calc();kpis();drawMap();
+
+const ROLES={policymaker:{n:'Policymaker',t:['map','silence','rank','intake','impact']},officer:{n:'District officer',t:['map','silence','intake']},field:{n:'ASHA / CSC worker',t:['silence','intake']},citizen:{n:'Citizen',t:['intake']}};
+const TX={en:['Sign in to Jan-Sankalp','Mobile number','Send OTP','Verify and continue','I consent to processing of my data under the DPDP Act 2023 for this purpose only.'],
+hi:['जन-संकल्प में साइन इन करें','मोबाइल नंबर','OTP भेजें','सत्यापित करें और आगे बढ़ें','मैं इस उद्देश्य के लिए DPDP अधिनियम 2023 के तहत अपने डेटा के प्रसंस्करण की सहमति देता/देती हूँ।'],
+kn:['ಜನ-ಸಂಕಲ್ಪಕ್ಕೆ ಸೈನ್ ಇನ್ ಮಾಡಿ','ಮೊಬೈಲ್ ಸಂಖ್ಯೆ','OTP ಕಳುಹಿಸಿ','ದೃಢೀಕರಿಸಿ ಮುಂದುವರಿಸಿ','ಈ ಉದ್ದೇಶಕ್ಕಾಗಿ DPDP ಕಾಯ್ದೆ 2023 ರ ಅಡಿಯಲ್ಲಿ ನನ್ನ ಡೇಟಾ ಸಂಸ್ಕರಣೆಗೆ ನಾನು ಒಪ್ಪುತ್ತೇನೆ.'],
+ta:['ஜன்-சங்கல்ப்பில் உள்நுழையவும்','மொபைல் எண்','OTP அனுப்பு','சரிபார்த்து தொடரவும்','இந்த நோக்கத்திற்காக DPDP சட்டம் 2023 இன் கீழ் எனது தரவு செயலாக்கத்திற்கு ஒப்புக்கொள்கிறேன்.']};
+let otpSent=false;
+function lang(){const t=TX[$('l-lang').value];$('l-t').textContent=t[0];$('l-ph').placeholder=t[1];$('l-go').textContent=otpSent?t[3]:t[2];$('l-ct').textContent=t[4]}
+function enter(u){$('login').classList.add('hide');const R2=ROLES[u.role];
+[...$('nav').children].forEach(c=>c.style.display=R2.t.includes(c.dataset.t)?'':'none');
+if(!R2.t.includes('map'))$('kpis').style.display='none';
+$('who').innerHTML=`<span>${R2.n} · +91 ••••••${u.ph.slice(-4)}</span><button id="lo">Log out</button>`;
+$('lo').onclick=()=>{try{sessionStorage.removeItem('js_user')}catch(e){}location.reload()};
+const first=[...$('nav').children].find(c=>c.style.display!='none');first.click()}
+$('l-lang').onchange=lang;lang();
+$('l-go').onclick=()=>{const ph=$('l-ph').value.trim(),e=$('l-err');e.textContent='';
+if(!otpSent){if(!/^[6-9]\d{9}$/.test(ph))return e.textContent='Enter a valid 10-digit Indian mobile number.';
+if(!$('l-c').checked)return e.textContent='Consent is required to continue.';
+otpSent=true;$('l-otpbox').classList.remove('hide');lang();return}
+if($('l-otp').value!=='123456')return e.textContent='Incorrect OTP. Use 123456 in this demo.';
+const u={ph,role:$('l-role').value};try{sessionStorage.setItem('js_user',JSON.stringify(u))}catch(x){}enter(u)};
+try{const u=JSON.parse(sessionStorage.getItem('js_user')||'null');if(u&&ROLES[u.role])enter(u)}catch(e){}
+
+const EN='Demand map|Silence Index|Priority engine|Voice intake|Impact loop|Raw demand|Deprivation|Need Gap|Silence|Block detail|Click a block on the map.|Top recommended projects|Convergence bundles|Multilingual intake|Live effect|Closed-loop impact|Load real data|Log out|requests ingested|silent blocks flagged|candidate projects|Trigger outreach|Extract Need Record|Run follow-up calls and verification|Equity|Demand|Cost-efficiency|Speed|Budget|beneficiaries|months|nothing planned|partly funded|Roads|Water|Health|Connectivity|Education|Policymaker|District officer|ASHA / CSC worker|Citizen|Reset to demo|Allocated|requests|deprivation'.split('|');
+const DICT={hi:'मांग मानचित्र|मौन सूचकांक|प्राथमिकता इंजन|आवाज़ इनपुट|प्रभाव चक्र|कुल मांग|वंचना|आवश्यकता अंतर|मौन|ब्लॉक विवरण|मानचित्र पर किसी ब्लॉक पर क्लिक करें।|शीर्ष अनुशंसित परियोजनाएँ|समन्वित पैकेज|बहुभाषी इनपुट|तत्काल प्रभाव|बंद-चक्र प्रभाव|वास्तविक डेटा लोड करें|लॉग आउट|प्राप्त अनुरोध|चिह्नित मौन ब्लॉक|संभावित परियोजनाएँ|संपर्क अभियान शुरू करें|आवश्यकता रिकॉर्ड निकालें|फ़ॉलो-अप कॉल और सत्यापन चलाएँ|समानता|मांग|लागत-दक्षता|गति|बजट|लाभार्थी|महीने|कुछ नियोजित नहीं|आंशिक वित्तपोषित|सड़कें|पेयजल|स्वास्थ्य|कनेक्टिविटी|शिक्षा|नीति-निर्माता|जिला अधिकारी|आशा / सीएससी कार्यकर्ता|नागरिक|डेमो पर रीसेट करें|आवंटित|अनुरोध|वंचना',kn:'ಬೇಡಿಕೆ ನಕ್ಷೆ|ಮೌನ ಸೂಚ್ಯಂಕ|ಆದ್ಯತಾ ಎಂಜಿನ್|ಧ್ವನಿ ಇನ್\u200cಪುಟ್|ಪರಿಣಾಮ ಚಕ್ರ|ಒಟ್ಟು ಬೇಡಿಕೆ|ವಂಚಿತತೆ|ಅಗತ್ಯ ಅಂತರ|ಮೌನ|ಬ್ಲಾಕ್ ವಿವರ|ನಕ್ಷೆಯಲ್ಲಿ ಬ್ಲಾಕ್ ಅನ್ನು ಕ್ಲಿಕ್ ಮಾಡಿ.|ಅಗ್ರ ಶಿಫಾರಸು ಯೋಜನೆಗಳು|ಸಮನ್ವಯ ಪ್ಯಾಕೇಜ್\u200cಗಳು|ಬಹುಭಾಷಾ ಇನ್\u200cಪುಟ್|ತತ್\u200cಕ್ಷಣದ ಪರಿಣಾಮ|ಮುಚ್ಚಿದ-ಚಕ್ರ ಪರಿಣಾಮ|ನೈಜ ಡೇಟಾ ಲೋಡ್ ಮಾಡಿ|ಲಾಗ್ ಔಟ್|ಸ್ವೀಕರಿಸಿದ ಮನವಿಗಳು|ಗುರುತಿಸಿದ ಮೌನ ಬ್ಲಾಕ್\u200cಗಳು|ಸಂಭಾವ್ಯ ಯೋಜನೆಗಳು|ಸಂಪರ್ಕ ಅಭಿಯಾನ ಆರಂಭಿಸಿ|ಅಗತ್ಯ ದಾಖಲೆ ಹೊರತೆಗೆಯಿರಿ|ಫಾಲೋ-ಅಪ್ ಕರೆ ಮತ್ತು ಪರಿಶೀಲನೆ ನಡೆಸಿ|ಸಮಾನತೆ|ಬೇಡಿಕೆ|ವೆಚ್ಚ-ದಕ್ಷತೆ|ವೇಗ|ಬಜೆಟ್|ಫಲಾನುಭವಿಗಳು|ತಿಂಗಳು|ಯಾವುದೇ ಯೋಜನೆ ಇಲ್ಲ|ಭಾಗಶಃ ಅನುದಾನಿತ|ರಸ್ತೆಗಳು|ನೀರು|ಆರೋಗ್ಯ|ಸಂಪರ್ಕ|ಶಿಕ್ಷಣ|ನೀತಿ ನಿರ್ಮಾಪಕ|ಜಿಲ್ಲಾ ಅಧಿಕಾರಿ|ಆಶಾ / ಸಿಎಸ್\u200cಸಿ ಕಾರ್ಯಕರ್ತ|ನಾಗರಿಕ|ಡೆಮೊಗೆ ಮರುಹೊಂದಿಸಿ|ಹಂಚಿಕೆ|ಮನವಿಗಳು|ವಂಚಿತತೆ',ta:'தேவை வரைபடம்|மௌனக் குறியீடு|முன்னுரிமை இயந்திரம்|குரல் உள்ளீடு|தாக்கச் சுழற்சி|மொத்தத் தேவை|பற்றாக்குறை|தேவை இடைவெளி|மௌனம்|பிளாக் விவரம்|வரைபடத்தில் ஒரு பிளாக்கை கிளிக் செய்யவும்.|முதன்மை பரிந்துரை திட்டங்கள்|இணைந்த தொகுப்புகள்|பன்மொழி உள்ளீடு|உடனடி விளைவு|மூடிய-சுழற்சி தாக்கம்|உண்மையான தரவை ஏற்றவும்|வெளியேறு|பெறப்பட்ட கோரிக்கைகள்|குறிக்கப்பட்ட மௌன பிளாக்குகள்|சாத்தியமான திட்டங்கள்|தொடர்பு முயற்சியைத் தொடங்கவும்|தேவைப் பதிவை பிரித்தெடுக்கவும்|பின்தொடர் அழைப்பு மற்றும் சரிபார்ப்பை இயக்கவும்|சமத்துவம்|தேவை|செலவு-திறன்|வேகம்|பட்ஜெட்|பயனாளிகள்|மாதங்கள்|எதுவும் திட்டமிடப்படவில்லை|பகுதி நிதியுதவி|சாலைகள்|குடிநீர்|சுகாதாரம்|இணைப்பு|கல்வி|கொள்கை வகுப்பாளர்|மாவட்ட அதிகாரி|ஆஷா / சிஎஸ்சி பணியாளர்|குடிமகன்|டெமோவிற்கு மீட்டமை|ஒதுக்கீடு|கோரிக்கைகள்|பற்றாக்குறை'};
+const MAP={};Object.keys(DICT).forEach(l=>{const m=EN.map((k,i)=>[k,DICT[l].split('|')[i]]).sort((a,b)=>b[0].length-a[0].length);MAP[l]=m});
+let UL='en',busy=false;
+const tx=str=>{if(UL=='en')return str;let o=str;for(const[k,v]of MAP[UL])if(o.includes(k))o=o.split(k).join(v);return o};
+const SK=new Set(['SCRIPT','STYLE','TEXTAREA','PRE']);
+function nodeTx(n){const p=n.parentNode;if(!p||SK.has(p.nodeName))return;const src=(n._t!==undefined&&n.nodeValue===n._t)?n._o:n.nodeValue,out=tx(src);n._o=src;n._t=out;if(out!==n.nodeValue)n.nodeValue=out}
+function walk(r){if(r.nodeType==3)return nodeTx(r);if(r.nodeType!=1)return;const w=document.createTreeWalker(r,4);let n;while(n=w.nextNode())nodeTx(n)}
+new MutationObserver(ms=>{if(busy)return;busy=true;ms.forEach(m=>{if(m.type=='characterData')nodeTx(m.target);m.addedNodes.forEach(walk)});busy=false}).observe(document.body,{childList:true,subtree:true,characterData:true});
+function setLang(l){UL=l;document.documentElement.lang=l;$('ui-lang').value=l;$('l-lang').value=l;if(DICT[l]||l=='en'){AL=l;$('va-lang').value=l}lang();busy=true;walk(document.body);busy=false;try{localStorage.setItem('js_lang',l)}catch(e){}}
+$('ui-lang').onchange=e=>setLang(e.target.value);
+$('l-lang').onchange=e=>setLang(e.target.value);
+try{const sl=localStorage.getItem('js_lang');if(sl&&DICT[sl])setLang(sl)}catch(e){}
+
+const ST="PB,Punjab,6,27.7,0,2;HP,Himachal Pradesh,8,6.9,0,3;UK,Uttarakhand,18,10.1,0,4;SK,Sikkim,4,0.6,0,6;AR,Arunachal Pradesh,24,1.4,0,8;HR,Haryana,12,25.4,1,3;UP,Uttar Pradesh,38,199.8,1,4;BR,Bihar,52,104.1,1,5;AS,Assam,33,31.2,1,7;NL,Nagaland,25,2.0,1,8;RJ,Rajasthan,29,68.5,2,2;MP,Madhya Pradesh,37,72.6,2,3;CG,Chhattisgarh,30,25.5,2,4;JH,Jharkhand,42,33.0,2,5;WB,West Bengal,21,91.3,2,6;ML,Meghalaya,33,3.0,2,7;MN,Manipur,18,2.9,2,8;GJ,Gujarat,19,60.4,3,2;MH,Maharashtra,15,112.4,3,3;TG,Telangana,14,35.0,3,4;OD,Odisha,29,42.0,3,5;TR,Tripura,14,3.7,3,7;MZ,Mizoram,10,1.1,3,8;GA,Goa,4,1.5,4,2;KA,Karnataka,13,61.1,4,3;AP,Andhra Pradesh,12,49.4,4,4;KL,Kerala,1,33.4,5,3;TN,Tamil Nadu,5,72.1,5,4";

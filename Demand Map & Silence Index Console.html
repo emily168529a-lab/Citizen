@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Demand Map & Silence Index Console</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f4f1ea;--card:#fff;--ink:#1b1a16;--mut:#6a665b;--line:#e2dccf;--acc:#c2410c;--acc2:#0f766e;--hi:#fff1e6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14120d;--card:#201d15;--ink:#f0ebdf;--mut:#a29c8c;--line:#38332a;--acc:#fb923c;--acc2:#2dd4bf;--hi:#2d2216}}
+:root[data-theme="dark"]{--bg:#14120d;--card:#201d15;--ink:#f0ebdf;--mut:#a29c8c;--line:#38332a;--acc:#fb923c;--acc2:#2dd4bf;--hi:#2d2216}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+.w{max-width:1200px;margin:0 auto;padding:16px}
+h1{font:600 24px Georgia,serif;margin:0}h2{font:600 15px Georgia,serif;margin:0 0 8px}
+.m{color:var(--mut);font-size:12px}
+.k{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:14px 0}
+@media(min-width:800px){.k{grid-template-columns:repeat(5,1fr)}}
+.kp,.c{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+.kp b{display:block;font:600 22px Georgia,serif}
+.g{display:grid;gap:12px;grid-template-columns:1fr;margin-bottom:12px}
+@media(min-width:900px){.g{grid-template-columns:1.3fr 1fr}}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:6px 11px;border-radius:8px;font-size:13px}
+button.on{background:var(--acc);color:#fff;border-color:var(--acc)}button:disabled{opacity:.5;cursor:default}
+svg{width:100%;display:block}svg text{font-family:system-ui,sans-serif}
+.lgd{height:8px;border-radius:4px;margin:8px 0 2px}
+.rw{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:7px 0;border-top:1px solid var(--line)}
+.rw:first-child{border:0}
+.t{display:inline-block;font-size:11px;padding:1px 7px;border-radius:99px;background:var(--line);margin-right:4px}
+.hot{background:var(--acc);color:#fff}
+.sl{display:grid;grid-template-columns:130px 1fr 38px;gap:8px;align-items:center;margin:6px 0}
+input[type=range]{width:100%}
+.ls{max-height:330px;overflow:auto}
+</style></head><body><div class="w">
+<h1>Demand Map &amp; Silence Index Console</h1>
+<div class="m">GIS choropleth (state tile cartogram) · approximate NITI Aayog MPI 2023 and Census 2011 population · citizen requests simulated</div>
+<div class="k" id="k"></div>
+<div class="g">
+<div class="c"><h2>Choropleth</h2><div id="ly" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"></div>
+<svg id="map" viewBox="0 0 480 320"></svg><div class="lgd" id="lg"></div><div class="m" id="lt" style="display:flex;justify-content:space-between"></div></div>
+<div class="c"><h2>State detail</h2><div id="dt" class="m">Click a state tile.</div>
+<h2 style="margin-top:14px">Need vs voice <span class="m">(shaded = high need, low voice)</span></h2><svg id="sc" viewBox="0 0 360 250"></svg></div>
+</div>
+<div class="g">
+<div class="c"><h2>Silence console</h2>
+<div class="sl"><span>Flag threshold</span><input type="range" id="th" min="15" max="60" value="35"><b id="tv">35</b></div>
+<div class="m" style="margin-bottom:6px">States at or above the threshold are under-heard relative to their deprivation. Pick an outreach channel mix based on connectivity.</div>
+<div style="margin:8px 0"><button class="on" onclick="qAll()">Queue all flagged</button> <button onclick="adv()">Advance 30 days</button> <button onclick="location.reload()">Reset</button></div>
+<div class="ls" id="ls"></div></div>
+<div class="c"><h2>Is listening improving?</h2><div id="sp"></div><div class="m" id="spt"></div>
+<h2 style="margin-top:14px">How the index works</h2><div class="m">Silence = deprivation × (1 − normalised voice per capita). Voice is requests per million people. Outreach raises voice in queued states over time, and representation parity (voice in high-deprivation states ÷ voice in low-deprivation states) shows whether the gap is closing.</div></div>
+</div></div>
+<script>
+const ST="PB,Punjab,6,27.7,0,2;HP,Himachal Pradesh,8,6.9,0,3;UK,Uttarakhand,18,10.1,0,4;SK,Sikkim,4,0.6,0,6;AR,Arunachal Pradesh,24,1.4,0,8;HR,Haryana,12,25.4,1,3;UP,Uttar Pradesh,38,199.8,1,4;BR,Bihar,52,104.1,1,5;AS,Assam,33,31.2,1,7;NL,Nagaland,25,2.0,1,8;RJ,Rajasthan,29,68.5,2,2;MP,Madhya Pradesh,37,72.6,2,3;CG,Chhattisgarh,30,25.5,2,4;JH,Jharkhand,42,33.0,2,5;WB,West Bengal,21,91.3,2,6;ML,Meghalaya,33,3.0,2,7;MN,Manipur,18,2.9,2,8;GJ,Gujarat,19,60.4,3,2;MH,Maharashtra,15,112.4,3,3;TG,Telangana,14,35.0,3,4;OD,Odisha,29,42.0,3,5;TR,Tripura,14,3.7,3,7;MZ,Mizoram,10,1.1,3,8;GA,Goa,4,1.5,4,2;KA,Karnataka,13,61.1,4,3;AP,Andhra Pradesh,12,49.4,4,4;KL,Kerala,1,33.4,5,3;TN,Tamil Nadu,5,72.1,5,4";
+let seed=21;const R=()=>(seed=seed*16807%2147483647)/2147483647;
+const D=ST.split(';').map((x,i)=>{const[ab,n,mpi,pm,r,c]=x.split(','),dep=.1+.85*mpi/52,conn=Math.min(.95,Math.max(.12,1.05-dep+(R()-.5)*.4)),pop=+pm;
+return{i,ab,n,mpi:+mpi,dep,conn,pop,r:+r,c:+c,raw:Math.round(pop*18*(.3+dep)*conn*(.6+R()*.8)),sup:R()*.5,pipe:R()<.3?.35:0}});
+const LY={dem:['Raw requests',28,d=>d.raw],dep:['Deprivation',350,d=>d.dep],voice:['Voice per capita',200,d=>d.voice],sil:['Silence Index',265,d=>d.sil],gap:['Need Gap',170,d=>d.gap]};
+const CH={asha:{n:'ASHA door-to-door + Gram Sabha',up:.6},ivr:{n:'IVR campaign + CSC kiosk',up:.4},wa:{n:'WhatsApp voice drive',up:.3}};
+const chan=d=>d.conn<.35?'asha':d.conn<.6?'ivr':'wa';
+let layer='sil',sel=null,thr=.35,Q=new Set(),hist=[],day=0;
+const $=id=>document.getElementById(id),pc=x=>Math.round(x*100),f1=x=>x.toFixed(1);
+function calc(){D.forEach(d=>d.vpc=d.raw/d.pop);const mv=Math.max(...D.map(d=>d.vpc));
+D.forEach(d=>{d.voice=d.vpc/mv;d.sil=d.dep*(1-Math.min(1,d.voice*1.6));d.di=d.vpc/d.conn});
+const md=Math.max(...D.map(d=>d.di));D.forEach(d=>d.gap=Math.max(0,d.di/md*d.dep*1.6-(d.sup+d.pipe)*.45))}
+const mean=a=>a.reduce((x,y)=>x+y,0)/a.length;
+function parity(){const s=[...D].sort((a,b)=>b.dep-a.dep),h=s.slice(0,14),l=s.slice(14);return mean(h.map(d=>d.voice))/mean(l.map(d=>d.voice))}
+const flagged=()=>D.filter(d=>d.sil>=thr).sort((a,b)=>b.sil-a.sil);
+function kpis(){const ms=mean(D.map(d=>d.sil));
+$('k').innerHTML=[[D.length,'states tracked'],[f1(ms*100),'mean Silence Index'+(hist.length>1?' ('+(ms-hist[0]>0?'+':'')+f1((ms-hist[0])*100)+' vs start)':'')],[flagged().length,'flagged under-heard states'],[Q.size,'in outreach queue'],[parity().toFixed(2),'representation parity (1.0 = equal)']].map(k=>`<div class="kp"><b>${k[0]}</b><span class="m">${k[1]}</span></div>`).join('')}
+function layers(){$('ly').innerHTML=Object.keys(LY).map(k=>`<button class="${k==layer?'on':''}" onclick="layer='${k}';draw()">${LY[k][0]}</button>`).join('')}
+const ramp=(v,h)=>`hsla(${h},75%,${64-v*34}%,${.25+v*.75})`;
+function draw(){layers();const[,h,fn]=LY[layer],vs=D.map(fn),mx=Math.max(...vs),mn=Math.min(...vs),FL=new Set(flagged().map(d=>d.i));
+$('map').innerHTML=D.map((d,i)=>{const v=(vs[i]-mn)/((mx-mn)||1),x=d.c*50+8,y=d.r*50+8;
+return `<g onclick="pick(${i})" style="cursor:pointer"><rect x="${x}" y="${y}" width="46" height="46" rx="6" fill="${ramp(v,h)}" stroke="${sel===i?'var(--ink)':FL.has(i)?'var(--acc)':'var(--line)'}" stroke-width="${sel===i?3:FL.has(i)?2.2:1}"/><text x="${x+23}" y="${y+22}" text-anchor="middle" font-size="10" font-weight="600" fill="var(--ink)">${d.ab}</text><text x="${x+23}" y="${y+35}" text-anchor="middle" font-size="9" fill="var(--ink)" opacity=".7">${layer=='dem'?d.raw:pc(fn(d))}</text>${Q.has(i)?`<circle cx="${x+40}" cy="${y+6}" r="4" fill="var(--acc2)"/>`:''}</g>`}).join('');
+$('lg').style.background=`linear-gradient(90deg,${ramp(0,h)},${ramp(1,h)})`;
+$('lt').innerHTML=`<span>low</span><span>${LY[layer][0]} · orange outline = flagged · teal dot = outreach queued</span><span>high</span>`;scatter();}
+function scatter(){const X=d=>34+d.dep*316,Y=d=>220-d.voice*200,FL=new Set(flagged().map(d=>d.i));
+$('sc').innerHTML=`<rect x="${34+.5*316}" y="${220-.4*200}" width="${316*.5}" height="${.4*200}" fill="var(--hi)"/><line x1="34" y1="220" x2="350" y2="220" stroke="var(--line)"/><line x1="34" y1="20" x2="34" y2="220" stroke="var(--line)"/>
+<text x="192" y="242" text-anchor="middle" font-size="10" fill="var(--mut)">Deprivation →</text><text x="10" y="120" font-size="10" fill="var(--mut)" transform="rotate(-90 10 120)" text-anchor="middle">Voice →</text>`+
+D.map(d=>`<circle cx="${X(d)}" cy="${Y(d)}" r="${4+Math.sqrt(d.pop)/2.5}" fill="${FL.has(d.i)?'var(--acc)':'var(--acc2)'}" opacity=".75" stroke="${sel===d.i?'var(--ink)':'none'}" stroke-width="2" onclick="pick(${d.i})" style="cursor:pointer"><title>${d.n}</title></circle>`).join('')}
+function pick(i){sel=i;const d=D[i],c=CH[chan(d)];draw();
+$('dt').innerHTML=`<b style="font:600 18px Georgia,serif">${d.n}</b> <span class="m">${d.pop} M people · connectivity ${pc(d.conn)}%</span>
+<div style="margin:8px 0">${d.sil>=thr?'<span class="t hot">Under-heard</span>':''}<span class="t">Deprivation ${pc(d.dep)}</span><span class="t">Voice ${pc(d.voice)}</span><span class="t">Silence ${pc(d.sil)}</span><span class="t">Need Gap ${f1(d.gap*100)}</span></div>
+<div class="m">${d.raw.toLocaleString()} requests · approx. MPI headcount ${d.mpi}%.<br>Suggested outreach: <b>${c.n}</b>.${Q.has(i)?' Already queued.':''}</div>`}
+function consoleUI(){$('tv').textContent=pc(thr);const F=flagged();
+$('ls').innerHTML=F.length?F.map(d=>`<div class="rw"><div><b>${d.n}</b> <span class="t">Silence ${pc(d.sil)}</span><br><span class="m">${CH[chan(d)].n} · expected uplift ${pc(CH[chan(d)].up)}%</span></div><button onclick="q(${d.i})" ${Q.has(d.i)?'disabled':''}>${Q.has(d.i)?'Queued':'Queue'}</button></div>`).join(''):'<div class="m">No states above the threshold.</div>'}
+function q(i){Q.add(i);refresh()}
+function qAll(){flagged().forEach(d=>Q.add(d.i));refresh()}
+function adv(){D.forEach(d=>{const up=Q.has(d.i)?CH[chan(d)].up*(1-d.voice*.6):.02;d.raw=Math.round(d.raw*(1+up*(.8+R()*.4)))});calc();day+=30;hist.push(mean(D.map(d=>d.sil)));refresh()}
+function spark(){const w=300,h=60,mx=Math.max(...hist),mn=Math.min(...hist),pts=hist.map((v,i)=>[10+i*(w-20)/Math.max(1,hist.length-1),h-8-(v-mn)/((mx-mn)||1)*(h-18)]);
+$('sp').innerHTML=`<svg viewBox="0 0 ${w} ${h}"><polyline fill="none" stroke="var(--acc)" stroke-width="2" points="${pts.map(p=>p.join(',')).join(' ')}"/>${pts.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="var(--acc)"/>`).join('')}</svg>`;
+$('spt').textContent=hist.length>1?`Mean Silence Index after ${day} days: ${f1(hist[hist.length-1]*100)} (started at ${f1(hist[0]*100)}).`:'Queue outreach, then advance time to see the trend.'}
+function refresh(){kpis();draw();consoleUI();spark();if(sel!==null)pick(sel)}
+$('th').oninput=e=>{thr=e.target.value/100;refresh()};
+calc();hist.push(mean(D.map(d=>d.sil)));refresh();
+</script></body></html>

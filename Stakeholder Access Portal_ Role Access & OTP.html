@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stakeholder Access Portal · Role Access & OTP</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f4f1ea;--card:#fff;--ink:#1b1a16;--mut:#6a665b;--line:#e2dccf;--acc:#c2410c;--ok:#0f766e;--hi:#fff1e6;--bad:#b91c1c}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14120d;--card:#201d15;--ink:#f0ebdf;--mut:#a29c8c;--line:#38332a;--acc:#fb923c;--ok:#2dd4bf;--hi:#2d2216;--bad:#f87171}}
+:root[data-theme="dark"]{--bg:#14120d;--card:#201d15;--ink:#f0ebdf;--mut:#a29c8c;--line:#38332a;--acc:#fb923c;--ok:#2dd4bf;--hi:#2d2216;--bad:#f87171}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+.w{max-width:1000px;margin:0 auto;padding:16px}
+h1{font:600 24px Georgia,serif;margin:0}h2{font:600 16px Georgia,serif;margin:0 0 8px}
+.m{color:var(--mut);font-size:12px}
+.g{display:grid;gap:12px;grid-template-columns:1fr;margin-top:14px}
+@media(min-width:880px){.g{grid-template-columns:420px 1fr}}
+.c{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.st{display:flex;gap:6px;margin-bottom:12px}
+.st i{flex:1;height:4px;border-radius:2px;background:var(--line)}.st i.on{background:var(--acc)}
+.roles{display:grid;gap:6px;margin:8px 0}
+.ro{border:1px solid var(--line);border-radius:10px;padding:8px 10px;cursor:pointer;background:var(--card);text-align:left;color:var(--ink);font:inherit}
+.ro.on{border-color:var(--acc);background:var(--hi)}.ro b{display:block}
+input[type=text]{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
+.ph{display:flex;gap:6px}.ph span{padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.otp{display:flex;gap:6px;justify-content:space-between}
+.otp input{width:100%;min-width:0;text-align:center;font-size:20px;padding:10px 0}
+button{font:inherit;cursor:pointer}
+.btn{width:100%;padding:11px;border-radius:9px;border:0;background:var(--acc);color:#fff;font-weight:600;margin-top:10px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.lk{background:none;border:0;color:var(--acc);padding:4px 0;font-size:13px}.lk:disabled{color:var(--mut)}
+.cons{display:flex;gap:8px;margin:10px 0 0;font-size:12px;color:var(--mut)}
+.err{color:var(--bad);font-size:13px;min-height:18px;margin-top:6px}
+.sms{background:var(--hi);border:1px dashed var(--acc);border-radius:10px;padding:8px 10px;margin:10px 0;font-size:13px}
+.sms b{font:700 18px ui-monospace,monospace;letter-spacing:3px}
+.hide{display:none}
+.sc{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:12px}
+th,td{padding:6px 5px;border-bottom:1px solid var(--line);text-align:center;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th.on,td.on{background:var(--hi)}
+.f{color:var(--ok);font-weight:700}.v{color:#b45309}.o{color:#6d28d9}.n{color:var(--mut)}
+.lg{max-height:170px;overflow:auto;font:11px ui-monospace,monospace;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px}
+.pill{display:inline-block;padding:2px 8px;border-radius:99px;background:var(--line);font-size:11px;margin:2px 2px 0 0}
+.pill.ok{background:var(--ok);color:#fff}
+</style></head><body><div class="w">
+<h1>Stakeholder Access Portal</h1>
+<div class="m">Role-based access and OTP sign-in · demo front end, no server · India-hosted deployment assumed</div>
+<div class="g">
+<div class="c" id="box"></div>
+<div class="c"><h2>Role access matrix</h2><div class="m" style="margin-bottom:8px">F = full, V = view only, O = own records only. Your selected role is highlighted.</div><div class="sc"><table id="mx"></table></div></div>
+</div></div>
+<script>
+const MOD=['Executive dashboard','Demand map','Silence Index','Priority engine','Voice intake','Impact loop','Raw citizen records','Audit logs','User admin'];
+const ROLES=[
+{id:'pm',n:'Central policymaker',d:'Ministry and national planners',a:'FFFFNFNNN'},
+{id:'sn',n:'State nodal officer',d:'State planning and district oversight',a:'FFFFFFNVF'},
+{id:'dc',n:'District collector',d:'District-level decisions',a:'FFFVFFNNN'},
+{id:'fw',n:'Field worker (ASHA / CSC)',d:'Assisted citizen intake',a:'NNFNFNONN'},
+{id:'au',n:'Auditor',d:'Independent, read-only oversight',a:'VVVVNVNFN'},
+{id:'ct',n:'Citizen',d:'Submit and track own requests',a:'NNNNONNNN'}];
+const $=id=>document.getElementById(id);
+let role=ROLES[0],step=1,phone='',otp='',exp=0,resendAt=0,tries=0,lockUntil=0,sess=null,log=[],tm=null;
+const ts=()=>new Date().toLocaleTimeString('en-IN',{hour12:false});
+const audit=e=>{log.unshift(ts()+'  '+e);if(log.length>30)log.pop()};
+const mask=p=>'+91 ••••••'+p.slice(-4);
+function matrix(){const h={F:['Full','f'],V:['View','v'],O:['Own','o'],N:['–','n']};
+$('mx').innerHTML='<tr><th>Module</th>'+ROLES.map(r=>`<th class="${r.id==role.id?'on':''}">${r.n.split(' (')[0]}</th>`).join('')+'</tr>'+
+MOD.map((m,i)=>`<tr><td>${m}</td>${ROLES.map(r=>`<td class="${r.id==role.id?'on':''} ${h[r.a[i]][1]}">${h[r.a[i]][0]}</td>`).join('')}</tr>`).join('')}
+function render(){
+const bars=`<div class="st">${[1,2,3].map(i=>`<i class="${i<=step?'on':''}"></i>`).join('')}</div>`;
+if(step==1){$('box').innerHTML=bars+`<h2>1. Choose role and verify mobile</h2><div class="roles">${ROLES.map(r=>`<button class="ro ${r.id==role.id?'on':''}" onclick="setRole('${r.id}')"><b>${r.n}</b><span class="m">${r.d}</span></button>`).join('')}</div>
+<div class="ph"><span>+91</span><input type="text" id="ph" inputmode="numeric" maxlength="10" placeholder="10-digit mobile number" value="${phone}"></div>
+<label class="cons"><input type="checkbox" id="cs"><span>I consent to processing of my mobile number for authentication only, under the DPDP Act 2023.</span></label>
+<div class="err" id="er"></div><button class="btn" onclick="sendOtp()">Send OTP</button>`}
+if(step==2){$('box').innerHTML=bars+`<h2>2. Enter the 6-digit OTP</h2><div class="m">Sent to ${mask(phone)} · role: ${role.n}</div>
+<div class="sms"><div class="m">Demo SMS inbox (in production this goes by SMS only and is never shown on screen)</div><b>${otp}</b></div>
+<div class="otp">${[0,1,2,3,4,5].map(i=>`<input type="text" inputmode="numeric" maxlength="1" class="od" data-i="${i}">`).join('')}</div>
+<div class="m" id="cd" style="margin-top:8px"></div><div class="err" id="er"></div>
+<button class="btn" onclick="verify()">Verify and sign in</button>
+<button class="lk" id="rs" onclick="sendOtp(1)">Resend OTP</button> · <button class="lk" onclick="step=1;render()">Change number</button>`;
+const ds=[...document.querySelectorAll('.od')];ds.forEach((d,i)=>{d.oninput=()=>{d.value=d.value.replace(/\D/g,'');if(d.value&&ds[i+1])ds[i+1].focus();if(ds.every(x=>x.value))verify()};d.onkeydown=e=>{if(e.key=='Backspace'&&!d.value&&ds[i-1])ds[i-1].focus()}});ds[0].focus()}
+if(step==3){const a=role.a;$('box').innerHTML=bars+`<h2>3. Signed in</h2><div style="margin-bottom:8px"><b>${role.n}</b><br><span class="m">${mask(sess.phone)} · session ${sess.id}</span></div>
+<div class="m">Session expires in <b id="se"></b></div><div style="margin:8px 0">${MOD.map((m,i)=>a[i]!='N'?`<span class="pill ok">${m}${a[i]=='V'?' (view)':a[i]=='O'?' (own)':''}</span>`:'').join('')}</div>
+<div class="m" style="margin:8px 0 4px">Audit log (this session)</div><div class="lg" id="lg"></div><button class="btn" onclick="out()">Sign out</button>`;$('lg').innerHTML=log.join('<br>')}
+matrix()}
+function setRole(id){phone=$('ph').value;role=ROLES.find(r=>r.id==id);render();$('ph').value=phone}
+function sendOtp(re){const er=$('er');
+if(!re){phone=$('ph').value.trim();if(!/^[6-9]\d{9}$/.test(phone))return er.textContent='Enter a valid 10-digit Indian mobile number.';if(!$('cs').checked)return er.textContent='Consent is required to continue.'}
+if(Date.now()<lockUntil)return er.textContent='Too many attempts. Try again in '+Math.ceil((lockUntil-Date.now())/1000)+'s.';
+if(re&&Date.now()<resendAt)return;
+otp=String(Math.floor(100000+Math.random()*900000));exp=Date.now()+120000;resendAt=Date.now()+30000;tries=0;step=2;audit('OTP requested for '+mask(phone)+' as '+role.id);render();tick()}
+function verify(){const v=[...document.querySelectorAll('.od')].map(d=>d.value).join(''),er=$('er');
+if(Date.now()<lockUntil)return er.textContent='Locked. Try again later.';
+if(Date.now()>exp)return er.textContent='OTP expired. Please resend.';
+if(v.length<6)return er.textContent='Enter all 6 digits.';
+if(v!==otp){tries++;audit('OTP failed ('+tries+'/3)');if(tries>=3){lockUntil=Date.now()+60000;audit('Locked 60s after 3 failures');step=1;render();$('er').textContent='Too many wrong attempts. Locked for 60 seconds.';return}
+er.textContent='Incorrect OTP. '+(3-tries)+' attempt(s) left.';document.querySelectorAll('.od').forEach(d=>d.value='');document.querySelector('.od').focus();return}
+sess={phone,role:role.id,id:Math.random().toString(36).slice(2,8).toUpperCase(),until:Date.now()+15*60000};audit('Login success, session '+sess.id);
+try{sessionStorage.setItem('sap',JSON.stringify({sess,log}))}catch(e){}
+step=3;render();tick()}
+function out(){audit('Signed out');try{sessionStorage.removeItem('sap')}catch(e){}sess=null;otp='';step=1;render();}
+function tick(){clearInterval(tm);tm=setInterval(()=>{
+if(step==2&&$('cd')){const l=Math.max(0,Math.ceil((exp-Date.now())/1000)),r=Math.max(0,Math.ceil((resendAt-Date.now())/1000));$('cd').textContent=l?'OTP valid for '+l+'s':'OTP expired';$('rs').disabled=r>0;$('rs').textContent=r>0?'Resend in '+r+'s':'Resend OTP'}
+if(step==3&&$('se')){const l=Math.max(0,Math.floor((sess.until-Date.now())/1000));$('se').textContent=Math.floor(l/60)+':'+String(l%60).padStart(2,'0');if(!l){audit('Session timed out');out()}}},1000)}
+try{const s=JSON.parse(sessionStorage.getItem('sap')||'null');if(s&&s.sess&&s.sess.until>Date.now()){sess=s.sess;log=s.log||[];role=ROLES.find(r=>r.id==sess.role)||role;phone=sess.phone;step=3}}catch(e){}
+render();if(step==3)tick();
+</script></body></html>

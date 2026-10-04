@@ -94,3 +94,128 @@ function refresh(){calc();kpis();table();portfolio();if(sel!==null)pick(sel)}
 $('bud').oninput=e=>{budget=+e.target.value;portfolio()};
 engine();refresh();pick(D.findIndex(d=>d===[...D].sort((a,b)=>b.sc-a.sc)[0]));
 </script></body></html>
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Jan-Sankalp: Citizen Demand Intelligence</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#faf7f2;--card:#fff;--ink:#1d1b16;--mut:#6b665c;--line:#e4ded2;--acc:#c2410c;--acc2:#0f766e}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17150f;--card:#221f17;--ink:#f1ece0;--mut:#a39d8e;--line:#3a352a;--acc:#fb923c;--acc2:#2dd4bf}}
+:root[data-theme="dark"]{--bg:#17150f;--card:#221f17;--ink:#f1ece0;--mut:#a39d8e;--line:#3a352a;--acc:#fb923c;--acc2:#2dd4bf}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Georgia,'Times New Roman',serif}
+.w{max-width:1100px;margin:0 auto;padding:16px}
+h1{font-size:26px;margin:0}h2{font-size:18px;margin:0 0 8px}
+.sub{color:var(--mut);font-size:13px;font-family:system-ui,sans-serif}
+nav{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0;font-family:system-ui,sans-serif}
+button,select,textarea,input{font:inherit;font-family:system-ui,sans-serif}
+button{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:7px 12px;border-radius:8px;cursor:pointer;font-size:13px}
+button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+.g{display:grid;gap:12px;grid-template-columns:1fr}
+@media(min-width:800px){.g2{grid-template-columns:1.4fr 1fr}}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px;font-family:system-ui,sans-serif}
+@media(min-width:700px){.kpis{grid-template-columns:repeat(4,1fr)}}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px}
+.kpi b{display:block;font-size:22px;font-family:Georgia,serif}.kpi span{font-size:12px;color:var(--mut)}
+svg text{font-family:system-ui,sans-serif}
+.tag{display:inline-block;font:11px system-ui;padding:2px 7px;border-radius:99px;background:var(--line);margin-right:4px}
+.row{padding:9px 0;border-top:1px solid var(--line);font-family:system-ui,sans-serif;font-size:13px}
+.row:first-child{border:0}
+.sl{display:grid;grid-template-columns:110px 1fr 36px;gap:8px;align-items:center;font:13px system-ui;margin:4px 0}
+textarea{width:100%;min-height:80px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px}
+select{background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px}
+pre{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;overflow-x:auto;font-size:12px;margin:8px 0 0}
+.bar{height:6px;background:var(--line);border-radius:4px;overflow:hidden}.bar i{display:block;height:100%;background:var(--acc2)}
+.q{color:var(--mut);font-style:italic}
+.hide{display:none}
+#login.hide{display:none}
+#login{position:fixed;inset:0;z-index:99;background:var(--bg);overflow:auto;display:flex;align-items:center;justify-content:center;padding:calc(16px + env(safe-area-inset-top,0px)) 16px calc(16px + env(safe-area-inset-bottom,0px))}
+.lc{width:100%;max-width:400px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;display:grid;gap:10px}
+.lc input[type=text],.lc input:not([type]),.lc select{width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+.lr{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cons{display:flex;gap:8px;font:12px/1.4 system-ui;color:var(--mut)}
+#who{display:flex;gap:8px;align-items:center;justify-content:flex-end;font:12px system-ui;color:var(--mut);margin-top:6px}
+#va-b{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:60;width:54px;height:54px;border-radius:50%;font-size:24px;background:var(--acc);color:#fff;border:0;box-shadow:0 4px 14px #0004}
+#va{display:none;position:fixed;right:12px;bottom:calc(80px + env(safe-area-inset-bottom,0px));z-index:60;width:min(360px,calc(100% - 24px));max-height:70%;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px;flex-direction:column;gap:8px;font-family:system-ui,sans-serif}
+#va.open{display:flex}#va-h{display:flex;justify-content:space-between;align-items:center}
+#va-l{overflow-y:auto;min-height:120px;max-height:300px;display:flex;flex-direction:column;gap:6px}
+.vm{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:7px 10px;font-size:13px;max-width:90%}.vm.me{align-self:flex-end;background:var(--acc2);color:#fff}
+#va-r{display:flex;gap:6px}#va-i{flex:1;min-width:0;padding:7px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+</style></head><body><div id="login"><div class="lc"><div style="font-size:30px">🗳️</div><h1 id="l-t"></h1>
+<div class="sub">Demo sign-in only: no server, accounts are simulated in your browser.</div>
+<div class="lr"><select id="l-lang"><option value="en">English</option><option value="hi">हिन्दी</option><option value="kn">ಕನ್ನಡ</option><option value="ta">தமிழ்</option></select>
+<select id="l-role"><option value="policymaker">Policymaker</option><option value="officer">District officer</option><option value="field">ASHA / CSC worker</option><option value="citizen">Citizen</option></select></div>
+<input id="l-ph" type="text" inputmode="numeric" maxlength="10" autocomplete="tel">
+<div id="l-otpbox" class="hide"><input id="l-otp" type="text" inputmode="numeric" maxlength="6" placeholder="6-digit OTP"><div class="sub">Demo OTP: 123456</div></div>
+<label class="cons"><input type="checkbox" id="l-c"><span id="l-ct"></span></label>
+<button class="on" id="l-go" style="padding:10px"></button><div id="l-err" class="sub" style="color:var(--acc)"></div></div></div>
+<div class="w">
+<h1>Jan-Sankalp <span class="sub">जन-संकल्प · Citizen Demand Intelligence · prototype on synthetic data</span></h1>
+<div class="sub">Voice-to-need intake, de-biased hotspots, Silence Index, explainable project ranking, closed-loop impact.</div>
+<div style="text-align:right"><select id="ui-lang" aria-label="Language" style="padding:5px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink)"><option value="en">English</option><option value="hi">हिन्दी</option><option value="kn">ಕನ್ನಡ</option><option value="ta">தமிழ்</option></select></div><div id="who"></div><nav id="nav"></nav>
+<div class="kpis" id="kpis"></div>
+
+<section id="t-map"><div class="card" id="loader"><h2>Load real data</h2>
+<div class="sub">Upload a district-boundary <b>GeoJSON</b> (e.g. DataMeet India maps) and a <b>CSV</b> with columns <code>district, mpi, population</code> (NITI Aayog MPI / NFHS-5 / Census). Files stay in your browser. Citizen requests remain simulated until you connect real feedback.</div>
+<div style="margin-top:8px;font-family:system-ui;font-size:13px">GeoJSON <input type="file" id="fg" accept=".json,.geojson"> CSV <input type="file" id="fc" accept=".csv"> <button id="lst" class="on">Load India state dataset (28 states)</button> <button onclick="location.reload()">Reset to demo</button></div>
+<div class="sub" id="lmsg" style="margin-top:6px"></div></div><div class="g g2">
+<div class="card"><h2>Demand map <span class="sub">(48 blocks, 6 districts)</span></h2>
+<div id="modes" style="margin-bottom:8px"></div>
+<svg id="map" viewBox="0 0 480 360" style="width:100%"></svg>
+<div class="sub" id="legend"></div></div>
+<div class="card"><h2>Block detail</h2><div id="detail" class="sub">Click a block on the map.</div></div>
+</div></section>
+
+<section id="t-silence" class="hide"><div class="card"><h2>Silence Index: high need, low voice</h2>
+<div class="sub">Silence = deprivation × (1 − normalised voice per 1,000 people). These blocks are under-represented in feedback, so outreach (IVR campaigns, ASHA-led collection, Gram Sabha) is triggered.</div>
+<div id="silent"></div></div></section>
+
+<section id="t-rank" class="hide"><div class="g g2">
+<div class="card"><h2>Priority engine</h2>
+<div id="sliders"></div>
+<div class="sl"><span>Budget (₹ cr)</span><input type="range" id="bud" min="5" max="60" value="25"><b id="budv">25</b></div>
+<div class="sub" id="spend"></div>
+<h2 style="margin-top:14px">Convergence bundles</h2><div id="bundles"></div></div>
+<div class="card"><h2>Top recommended projects</h2><div id="top"></div></div>
+</div></section>
+
+<section id="t-intake" class="hide"><div class="g g2">
+<div class="card"><h2>Multilingual intake</h2>
+<div class="sub">Paste or pick a message (text standing in for an ASR transcript). Rule-based extractor mimics the LLM Need Record step.</div>
+<div style="margin:8px 0" id="samples"></div>
+<textarea id="msg" placeholder="Type in Hindi, Kannada, Tamil or English"></textarea>
+<div style="margin:8px 0">Block: <select id="blk"></select> <button id="go" class="on">Extract Need Record</button></div>
+<div id="out"></div></div>
+<div class="card"><h2>Live effect</h2><div class="sub">Submitting a record adds to that block's demand and re-ranks everything in real time. Check the map and priority tabs.</div><div id="log"></div></div>
+</div></section>
+
+<section id="t-impact" class="hide"><div class="card"><h2>Closed-loop impact</h2>
+<div class="sub">Completed projects get an automated voice follow-up, a satellite check and a difference-in-differences estimate against matched control blocks.</div>
+<button id="fu" class="on" style="margin:10px 0">Run follow-up calls and verification</button>
+<div id="imp"></div></div></section>
+</div>
+<button id="va-b" aria-label="Voice assistant">🎙️</button>
+<div id="va"><div id="va-h"><b>Assistant</b><select id="va-lang"><option value="en">English</option><option value="hi">हिन्दी</option><option value="kn">ಕನ್ನಡ</option><option value="ta">தமிழ்</option><option value="te">తెలుగు</option><option value="bn">বাংলা</option><option value="mr">मराठी</option><option value="ml">മലയാളം</option><option value="gu">ગુજરાતી</option><option value="pa">ਪੰਜਾਬੀ</option></select><button id="va-x">×</button></div><div id="va-l"></div>
+<div id="va-r"><button id="va-m">🎤 Speak</button><input id="va-i" placeholder="Type or speak"><button id="va-s" class="on">Send</button></div>
+<label class="sub"><input type="checkbox" id="va-t" checked> Speak replies</label></div>
+<script>
+const S=['Roads','Water','Health','Connectivity','Education'];
+const SC={Roads:'#b45309',Water:'#0369a1',Health:'#be123c',Connectivity:'#6d28d9',Education:'#15803d'};
+const D=['Raichur','Sitapur','Dindigul','Gadchiroli','Barmer','Koraput'];
+let seed=7;const R=()=>(seed=(seed*16807)%2147483647)/2147483647;
+let B=[],CS=58,AL='en';
+for(let i=0;i<48;i++){const dep=.2+R()*.75,conn=Math.min(.95,Math.max(.12,1.05-dep+(R()-.5)*.4)),pop=20+Math.round(R()*100);
+const b={id:i,name:D[Math.floor(i/8)]+' B'+(i%8+1),dist:D[Math.floor(i/8)],r:Math.floor(i/8),c:i%8,dep,conn,pop,need:{},raw:{},sup:{},pipe:{},cost:{},tm:{},out:false};
+S.forEach(s=>{b.need[s]=Math.min(1,dep*(.4+R()*.9));b.raw[s]=Math.round(pop/8*b.need[s]*conn*(.5+R()));b.sup[s]=R()*.5;b.pipe[s]=R()<.3?.35:0;b.cost[s]=+(.8+R()*3.2).toFixed(1)*(pop/60+.4);b.tm[s]=6+Math.round(R()*24)});
+B.push(b)}
+const W={Equity:.35,Demand:.3,'Cost-efficiency':.2,Speed:.15};
+let mode='demand',sel=null,tab='map',budget=25;
+const $=id=>document.getElementById(id),f1=x=>x.toFixed(1),pc=x=>Math.round(x*100);
+const tot=b=>S.reduce((a,s)=>a+b.raw[s],0);
+function calc(){
+const per=B.map(b=>tot(b)/b.pop),mx=Math.max(...per);
+B.forEach((b,i)=>{b.voice=per[i]/mx;b.silence=b.dep*(1-Math.min(1,b.voice*1.6));b.gap={};b.di={};
+S.forEach(s=>{b.di[s]=b.raw[s]/(b.pop/8)/b.conn});});
+const dm=Math.max(...B.flatMap(b=>S.map(s=>b.di[s])))||1;

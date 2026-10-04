@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Executive Dashboard · District Intelligence & Priority Engine</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f4f1ea;--card:#fff;--ink:#1b1a16;--mut:#6a665b;--line:#e2dccf;--acc:#c2410c;--acc2:#0f766e;--hi:#fff1e6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14120d;--card:#201d15;--ink:#f0ebdf;--mut:#a29c8c;--line:#38332a;--acc:#fb923c;--acc2:#2dd4bf;--hi:#2d2216}}
+:root[data-theme="dark"]{--bg:#14120d;--card:#201d15;--ink:#f0ebdf;--mut:#a29c8c;--line:#38332a;--acc:#fb923c;--acc2:#2dd4bf;--hi:#2d2216}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+.w{max-width:1200px;margin:0 auto;padding:16px}
+h1{font:600 24px Georgia,serif;margin:0}h2{font:600 15px Georgia,serif;margin:0 0 8px}
+.m{color:var(--mut);font-size:12px}
+.k{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:14px 0}
+@media(min-width:800px){.k{grid-template-columns:repeat(5,1fr)}}
+.kp,.c{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+.kp b{display:block;font:600 22px Georgia,serif}
+.g{display:grid;gap:12px;grid-template-columns:1fr;margin-bottom:12px}
+@media(min-width:900px){.g{grid-template-columns:1.5fr 1fr}}
+.sc{overflow-x:auto;max-height:430px;overflow-y:auto}
+table{border-collapse:collapse;width:100%;min-width:560px}
+th{position:sticky;top:0;background:var(--card);text-align:left;font-size:11px;color:var(--mut);cursor:pointer;padding:6px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:6px;border-bottom:1px solid var(--line);white-space:nowrap}
+tr.r{cursor:pointer}tr.r:hover,tr.sel{background:var(--hi)}
+.b{display:inline-block;height:6px;border-radius:3px;background:var(--acc2);vertical-align:middle}
+.sl{display:grid;grid-template-columns:120px 1fr 34px;gap:8px;align-items:center;margin:5px 0}
+input[type=range]{width:100%}
+.p{padding:8px 0;border-top:1px solid var(--line)}.p:first-child{border:0}
+.t{display:inline-block;font-size:11px;padding:1px 7px;border-radius:99px;background:var(--line);margin-right:4px}
+.hot{background:var(--acc);color:#fff}
+.sb{display:grid;grid-template-columns:90px 1fr 40px;gap:6px;align-items:center;margin:4px 0;font-size:12px}
+.tr{height:8px;background:var(--line);border-radius:4px;overflow:hidden}.tr i{display:block;height:100%}
+</style></head><body><div class="w">
+<h1>District Intelligence &amp; Priority Engine</h1>
+<div class="m">Executive view · 24 aspirational districts · illustrative synthetic data, not official figures</div>
+<div class="k" id="k"></div>
+<div class="g">
+<div class="c"><h2>District ranking <span class="m">(click a column to sort, a row for detail)</span></h2><div class="sc"><table><thead id="th"></thead><tbody id="tb"></tbody></table></div></div>
+<div class="c"><h2>District detail</h2><div id="dt" class="m">Select a district.</div></div>
+</div>
+<div class="g">
+<div class="c"><h2>Priority engine</h2><div id="sl"></div>
+<div class="sl"><span>Budget (₹ cr)</span><input type="range" id="bud" min="20" max="400" value="120"><b id="bv">120</b></div>
+<div id="sum" class="m" style="margin-top:8px"></div></div>
+<div class="c"><h2>Recommended portfolio</h2><div id="pf"></div></div>
+</div>
+<div class="m">Score = weighted equity (deprivation), debiased demand, Silence boost, cost-efficiency and speed, scaled by Need Gap (demand × deprivation − supply − funded pipeline).</div>
+</div>
+<script>
+const S=['Roads','Water','Health','Connectivity','Education'],SC={Roads:'#b45309',Water:'#0369a1',Health:'#be123c',Connectivity:'#6d28d9',Education:'#15803d'};
+const L=[['Raichur','KA'],['Yadgir','KA'],['Koraput','OD'],['Kalahandi','OD'],['Nuapada','OD'],['Bahraich','UP'],['Shrawasti','UP'],['Chitrakoot','UP'],['Araria','BR'],['Kishanganj','BR'],['Sheikhpura','BR'],['Gadchiroli','MH'],['Nandurbar','MH'],['Barmer','RJ'],['Bijapur','CG'],['Dantewada','CG'],['Gumla','JH'],['Pakur','JH'],['Ramanathapuram','TN'],['Nuh','HR'],['Chamba','HP'],['Dhubri','AS'],['Vizianagaram','AP'],['Asifabad','TG']];
+let seed=5;const R=()=>(seed=seed*16807%2147483647)/2147483647;
+const D=L.map(([n,st],i)=>{const dep=.35+R()*.6,conn=Math.min(.9,Math.max(.12,1.02-dep+(R()-.5)*.35)),pop=8+Math.round(R()*32),d={n,st,i,dep,conn,pop,raw:{},sup:{},pipe:{},cost:{},tm:{},need:{}};
+S.forEach(s=>{d.need[s]=Math.min(1,dep*(.4+R()*.9));d.raw[s]=Math.round(pop*40*d.need[s]*conn*(.5+R()));d.sup[s]=R()*.5;d.pipe[s]=R()<.3?.35:0;d.cost[s]=+((.8+R()*3.2)*(pop/20+.5)).toFixed(1);d.tm[s]=6+Math.round(R()*24)});return d});
+const W={Equity:.3,Demand:.25,Silence:.15,'Cost-efficiency':.2,Speed:.1};
+let P=[],sortK='sc',sortD=-1,sel=null,budget=120;
+const $=id=>document.getElementById(id),pc=x=>Math.round(x*100),f1=x=>x.toFixed(1);
+function calc(){
+D.forEach(d=>{d.tot=S.reduce((a,s)=>a+d.raw[s],0);d.vpc=d.tot/d.pop});
+const mv=Math.max(...D.map(d=>d.vpc));
+D.forEach(d=>{d.voice=d.vpc/mv;d.sil=d.dep*(1-Math.min(1,d.voice*1.6));d.di={};d.gap={};S.forEach(s=>d.di[s]=d.raw[s]/d.pop/d.conn)});
+const md=Math.max(...D.flatMap(d=>S.map(s=>d.di[s])));
+D.forEach(d=>{S.forEach(s=>{d.di[s]/=md;d.gap[s]=Math.max(0,d.di[s]*d.dep*1.6-(d.sup[s]+d.pipe[s])*.45)});d.gs=S.reduce((a,s)=>a+d.gap[s],0)});
+P=[];D.forEach(d=>S.forEach(s=>{if(d.gap[s]>.05)P.push({d,s,cost:d.cost[s],tm:d.tm[s],ben:Math.round(d.pop*1e5*d.need[s]*.5),gap:d.gap[s]})}));
+const me=Math.max(...P.map(p=>p.ben/p.cost));
+P.forEach(p=>{p.sc=(W.Equity*p.d.dep+W.Demand*Math.min(1,p.gap*2.2)+W.Silence*p.d.sil+W['Cost-efficiency']*(p.ben/p.cost/me)+W.Speed*(1-p.tm/30))*(.6+Math.min(1,p.gap*2))});
+P.sort((a,b)=>b.sc-a.sc);
+D.forEach(d=>{const m=P.filter(p=>p.d===d);d.sc=m.length?m.slice(0,2).reduce((a,p)=>a+p.sc,0)/2:0;d.best=m[0]})}
+const COLS=[['n','District'],['st','State'],['dep','Deprivation'],['voice','Voice'],['sil','Silence'],['gs','Need Gap'],['sc','Priority']];
+function table(){
+$('th').innerHTML='<tr><th>#</th>'+COLS.map(c=>`<th onclick="srt('${c[0]}')">${c[1]}${sortK==c[0]?(sortD>0?' ▲':' ▼'):''}</th>`).join('')+'</tr>';
+const mx=Math.max(...D.map(d=>d.sc))||1,mg=Math.max(...D.map(d=>d.gs))||1;
+const A=[...D].sort((a,b)=>(typeof a[sortK]=='string'?a[sortK].localeCompare(b[sortK]):a[sortK]-b[sortK])*sortD);
+$('tb').innerHTML=A.map((d,i)=>`<tr class="r ${sel===d.i?'sel':''}" onclick="pick(${d.i})"><td>${i+1}</td><td><b>${d.n}</b></td><td>${d.st}</td><td>${pc(d.dep)}</td><td>${pc(d.voice)}</td><td>${d.sil>.38?'<span class="t hot">'+pc(d.sil)+'</span>':pc(d.sil)}</td><td>${f1(d.gs*100/mg)}</td><td><span class="b" style="width:${pc(d.sc/mx)*.6}px"></span> ${pc(d.sc)}</td></tr>`).join('')}
+function srt(k){if(sortK==k)sortD=-sortD;else{sortK=k;sortD=k=='n'||k=='st'?1:-1}table()}
+function pick(i){sel=i;table();const d=D[i],b=d.best,mg=Math.max(...S.map(s=>d.gap[s]))||1;
+$('dt').innerHTML=`<b style="font:600 18px Georgia,serif">${d.n}</b> <span class="m">${d.st} · ${d.pop} lakh people · connectivity ${pc(d.conn)}%</span>
+<div style="margin:8px 0">${d.sil>.38?'<span class="t hot">Under-heard</span>':''}<span class="t">Deprivation ${pc(d.dep)}</span><span class="t">Voice ${pc(d.voice)}</span><span class="t">Silence ${pc(d.sil)}</span></div>`+
+S.map(s=>`<div class="sb"><span>${s}</span><div class="tr"><i style="width:${pc(d.gap[s]/mg)}%;background:${SC[s]}"></i></div><span>${f1(d.gap[s]*100)}</span></div>`).join('')+
+`<div class="m">Bars show Need Gap by sector. ${S.filter(s=>d.pipe[s]).length?'Funded pipeline already covers: '+S.filter(s=>d.pipe[s]).join(', ')+'.':'No funded pipeline in any sector.'}</div>`+
+(b?`<div class="p" style="margin-top:8px"><b>Top recommendation: ${b.s}</b><br>₹${f1(b.cost)} cr · ~${b.ben.toLocaleString()} beneficiaries · ${b.tm} months<br><span class="m">Why: ${d.raw[b.s].toLocaleString()} requests, deprivation ${pc(d.dep)}, existing supply ${pc(d.sup[b.s])}%, ${d.sil>.38?'and this district is under-heard, so real need is likely higher.':'and no funded plan covers it.'}</span></div>`:'<div class="m">No unmet gap.</div>')}
+function engine(){
+$('sl').innerHTML=Object.keys(W).map(k=>`<div class="sl"><span>${k}</span><input type="range" min="0" max="100" value="${W[k]*100}" oninput="W['${k}']=this.value/100;this.nextElementSibling.textContent=this.value;refresh()"><b>${pc(W[k])}</b></div>`).join('');}
+function portfolio(){
+$('bv').textContent=budget;let left=budget;const pick=[];
+for(const p of P){if(pick.length>=12)break;if(p.cost<=left){pick.push(p);left-=p.cost}}
+const ben=pick.reduce((a,p)=>a+p.ben,0),dist=new Set(pick.map(p=>p.d.i)).size,sil=pick.filter(p=>p.d.sil>.38).length;
+$('sum').innerHTML=`Allocated <b>₹${f1(budget-left)} cr</b> of ₹${budget} cr · <b>${pick.length}</b> projects in <b>${dist}</b> districts · ~<b>${(ben/1e5).toFixed(1)} lakh</b> beneficiaries · <b>${sil}</b> in under-heard districts.`;
+$('pf').innerHTML=pick.map((p,i)=>`<div class="p"><b>${i+1}. ${p.s} · ${p.d.n}</b> <span class="t">${p.d.st}</span><span class="t">score ${pc(p.sc)}</span>${p.d.sil>.38?'<span class="t hot">under-heard</span>':''}<br><span class="m">₹${f1(p.cost)} cr · ${p.ben.toLocaleString()} beneficiaries · ${p.tm} months</span></div>`).join('')}
+function kpis(){const T=D.reduce((a,d)=>a+d.tot,0),sil=D.filter(d=>d.sil>.38).length,pip=D.reduce((a,d)=>a+S.filter(s=>d.pipe[s]).length,0);
+$('k').innerHTML=[[D.length,'districts tracked'],[T.toLocaleString(),'citizen requests'],[sil,'under-heard districts'],[P.length,'unmet-gap projects'],[pip+' / '+D.length*S.length,'sector slots already funded']].map(k=>`<div class="kp"><b>${k[0]}</b><span class="m">${k[1]}</span></div>`).join('')}
+function refresh(){calc();kpis();table();portfolio();if(sel!==null)pick(sel)}
+$('bud').oninput=e=>{budget=+e.target.value;portfolio()};
+engine();refresh();pick(D.findIndex(d=>d===[...D].sort((a,b)=>b.sc-a.sc)[0]));
+</script></body></html>
